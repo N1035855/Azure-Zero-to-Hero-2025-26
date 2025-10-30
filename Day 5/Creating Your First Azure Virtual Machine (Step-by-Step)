@@ -1,0 +1,191 @@
+
+
+# 💻 Day 5 — Creating Your First Azure Virtual Machine (Step-by-Step)
+
+> “Your first VM on Azure — let’s build it together!”
+
+Welcome to **Day 5** of the *Azure Zero to Hero* series!  
+In this session, we’ll **create your first Virtual Machine** in Azure using both the **Portal** and **Azure CLI**.  
+We’ll cover everything from **VM creation** to **SSH/RDP access**, **disk attachment**, and **scaling** your virtual machines.
+
+---
+
+## 🧠 What You’ll Learn
+- Create a **Linux Virtual Machine** using the **Azure Portal**
+- Access your VM via **SSH or RDP**
+- Attach and format a **Data Disk**
+- **Resize (scale up)** your VM
+- Deploy a **VM Scale Set** for horizontal scaling
+- Learn **best practices** for VM management
+
+---
+
+## 🏗️ Architecture Overview
+Before we start, here’s what we’ll build:
+
+```
+
+[User] ⇄ [Public IP] ⇄ [Azure VM] ⇄ [OS Disk + Data Disk]
+⇓
+[VM Scale Set]
+
+````
+
+---
+
+## ⚙️ Step-by-Step Guide
+
+### **1️⃣ Create Resource Group**
+```bash
+az group create --name myResourceGroup --location eastus
+````
+
+### **2️⃣ Generate SSH Key (if not already created)**
+
+```bash
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/azure_vm_key -N ""
+```
+
+### **3️⃣ Create Virtual Machine (CLI)**
+
+```bash
+az vm create \
+  --resource-group myResourceGroup \
+  --name myVM \
+  --image UbuntuLTS \
+  --admin-username azureuser \
+  --ssh-key-values ~/.ssh/azure_vm_key.pub \
+  --size Standard_B1s \
+  --location eastus
+```
+
+### **4️⃣ Open Port for SSH**
+
+```bash
+az vm open-port --resource-group myResourceGroup --name myVM --port 22
+```
+
+### **5️⃣ Connect to the VM**
+
+```bash
+ssh -i ~/.ssh/azure_vm_key azureuser@<your_public_ip>
+```
+
+✅ You’re now inside your Azure VM!
+
+---
+
+## 💾 Attach and Mount a Data Disk
+
+### **Create and Attach Disk**
+
+```bash
+az disk create --resource-group myResourceGroup --name myDataDisk --size-gb 10
+az vm disk attach --resource-group myResourceGroup --vm-name myVM --name myDataDisk
+```
+
+### **Format & Mount Inside VM**
+
+```bash
+lsblk
+sudo parted /dev/sdc --script mklabel gpt mkpart primary ext4 0% 100%
+sudo mkfs.ext4 /dev/sdc1
+sudo mkdir /data
+sudo mount /dev/sdc1 /data
+```
+
+### **Persist Mount (Optional)**
+
+```bash
+UUID=$(sudo blkid -s UUID -o value /dev/sdc1)
+echo "UUID=$UUID /data ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
+```
+
+---
+
+## 📈 Scaling the VM
+
+### **Vertical Scaling (Resize VM)**
+
+```bash
+az vm deallocate --resource-group myResourceGroup --name myVM
+az vm resize --resource-group myResourceGroup --name myVM --size Standard_B2s
+az vm start --resource-group myResourceGroup --name myVM
+```
+
+### **Horizontal Scaling (VM Scale Set)**
+
+```bash
+az vmss create \
+  --resource-group myResourceGroup \
+  --name myScaleSet \
+  --image UbuntuLTS \
+  --admin-username azureuser \
+  --ssh-key-values ~/.ssh/azure_vm_key.pub \
+  --instance-count 2 \
+  --upgrade-policy-mode automatic
+```
+
+---
+
+## 🔍 Useful Commands
+
+```bash
+# List VM Public IP
+az vm list-ip-addresses -g myResourceGroup -n myVM --output table
+
+# Check VM Status
+az vm get-instance-view -g myResourceGroup -n myVM --output table
+
+# List Scale Set Instances
+az vmss list-instances -g myResourceGroup -n myScaleSet --output table
+```
+
+---
+
+## 🧩 Best Practices
+
+* ✅ Use **SSH keys** instead of passwords
+* 🔐 Restrict access to port **22** using NSG or Just-In-Time (JIT)
+* 🧹 Organize resources with **Resource Groups and Tags**
+* 💾 Use **Managed Snapshots** for backups
+* 💰 Monitor costs when scaling up/down
+
+---
+
+## 🎥 YouTube Video
+
+📺 **Watch the full walkthrough here:**
+👉 [Day 5 — Creating Your First Azure Virtual Machine (Step-by-Step)](https://www.youtube.com/) *(Add your video link here)*
+
+---
+
+## 🏷️ Keywords & Tags
+
+`azure`, `azure vm`, `create azure vm`, `azure tutorial`,
+`azure ssh`, `azure disk attach`, `vm scale set`,
+`cloud devops`, `azure for beginners`
+
+---
+
+## 💬 Outro
+
+That’s it! You’ve successfully:
+
+* Created and connected to your first VM
+* Attached and formatted a data disk
+* Resized your VM
+* Built a scalable setup with VM Scale Sets
+
+If this helped you — ⭐ **Star the repo**, 💬 **Comment**, and 📢 **Subscribe** for more daily Cloud & DevOps learning!
+
+---
+
+**Next Episode → [Day 6: Azure Autoscaling & Bastion Access (Coming Soon)]**
+
+```
+
+---
+
+Would you like me to add a **small “folder structure” section** (showing where to keep CLI scripts, screenshots, and markdowns) for your GitHub repo too? It makes your playlist repo look very professional.
+```
